@@ -48,7 +48,7 @@
 <body>
     <div id="container">
         <div id="imageWrapper">
-            <img src="./Big_Map_1.svg" alt="Big Map" id="mapImage">
+            <img src="Big_Map_1.svg" alt="Big Map" id="mapImage">
         </div>
     </div>
     <div id="error" style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.8); color: white; padding: 10px; display: none; z-index: 1000;"></div>
@@ -58,6 +58,70 @@
         const wrapper = document.getElementById('imageWrapper');
         const img = document.getElementById('mapImage');
         const errorDiv = document.getElementById('error');
+        
+        // Diagnostics: show resolved URL and check if the file actually exists on the server
+        const diag = document.createElement('div');
+        diag.style.position = 'absolute';
+        diag.style.top = '10px';
+        diag.style.right = '10px';
+        diag.style.background = 'rgba(0,0,0,0.6)';
+        diag.style.color = 'white';
+        diag.style.padding = '8px 10px';
+        diag.style.font = '12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        diag.style.zIndex = '1000';
+        diag.style.maxWidth = '40vw';
+        diag.style.wordBreak = 'break-all';
+        diag.textContent = '';
+        document.body.appendChild(diag);
+
+        function resolvedImageURL() {
+            try {
+                return new URL(img.getAttribute('src'), document.baseURI).href;
+            } catch (e) {
+                return '(could not resolve URL)';
+            }
+        }
+
+        async function checkImageReachability() {
+            const url = resolvedImageURL();
+            diag.textContent = `Image URL: ${url}`;
+            try {
+                const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                if (!res.ok) {
+                    errorDiv.textContent = `Error: "${url}" returned HTTP ${res.status}. Common causes: wrong filename/case, file not committed to the same folder, or GitHub Pages not yet deployed.`;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = `Network error trying to reach "${url}". If this only happens on GitHub Pages, verify the file path and that the SVG is present in the same directory as index.html.`;
+                errorDiv.style.display = 'block';
+                console.error(err);
+            }
+        }
+        
+        img.onerror = function() {
+            const url = resolvedImageURL();
+            errorDiv.textContent = `Error: Cannot load ${url}. Check exact filename/case (GitHub is case-sensitive), and ensure "Big_Map_1.svg" lives in the same folder as index.html on the deployed branch.`;
+            errorDiv.style.display = 'block';
+            diag.textContent = `Failed to load: ${url}`;
+            console.error('Failed to load image', url);
+        };
+        
+        function updateTransform() {
+            wrapper.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        }
+        
+        // Initialize position (center the image at 50% zoom)
+        img.onload = function() {
+            diag.textContent = `Loaded: ${resolvedImageURL()}`;
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const imgWidth = img.naturalWidth * scale;
+            const imgHeight = img.naturalHeight * scale;
+            
+            posX = (containerWidth - imgWidth) / 2;
+            posY = (containerHeight - imgHeight) / 2;
+            updateTransform();
+        };
         
         let scale = 0.5; // Start at 50% zoom
         const minScale = 0.01; // 1% minimum
@@ -72,29 +136,6 @@
         // Touch handling for pinch-to-zoom
         let initialDistance = 0;
         let initialScale = scale;
-        
-        // Error handling
-        img.onerror = function() {
-            errorDiv.textContent = 'Error: Cannot load Big_Map_1.svg. Check file name and location.';
-            errorDiv.style.display = 'block';
-            console.error('Failed to load image');
-        };
-        
-        function updateTransform() {
-            wrapper.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-        }
-        
-        // Initialize position (center the image at 50% zoom)
-        img.onload = function() {
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-            const imgWidth = img.naturalWidth * scale;
-            const imgHeight = img.naturalHeight * scale;
-            
-            posX = (containerWidth - imgWidth) / 2;
-            posY = (containerHeight - imgHeight) / 2;
-            updateTransform();
-        };
         
         // Mouse wheel zoom
         container.addEventListener('wheel', (e) => {
@@ -190,6 +231,10 @@
         // Prevent context menu
         container.addEventListener('contextmenu', (e) => {
             e.preventDefault();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkImageReachability();
         });
     </script>
 </body>
