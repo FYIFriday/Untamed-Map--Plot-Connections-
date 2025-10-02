@@ -48,14 +48,16 @@
 <body>
     <div id="container">
         <div id="imageWrapper">
-            <img src="Big_Map_1.svg" alt="Big Map" id="mapImage">
+            <img src="./Big_Map_1.svg" alt="Big Map" id="mapImage">
         </div>
     </div>
+    <div id="error" style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.8); color: white; padding: 10px; display: none; z-index: 1000;"></div>
 
     <script>
         const container = document.getElementById('container');
         const wrapper = document.getElementById('imageWrapper');
         const img = document.getElementById('mapImage');
+        const errorDiv = document.getElementById('error');
         
         let scale = 0.5; // Start at 50% zoom
         const minScale = 0.01; // 1% minimum
@@ -70,6 +72,13 @@
         // Touch handling for pinch-to-zoom
         let initialDistance = 0;
         let initialScale = scale;
+        
+        // Error handling
+        img.onerror = function() {
+            errorDiv.textContent = 'Error: Cannot load Big_Map_1.svg. Check file name and location.';
+            errorDiv.style.display = 'block';
+            console.error('Failed to load image');
+        };
         
         function updateTransform() {
             wrapper.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
